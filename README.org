@@ -1,0 +1,172 @@
+#+TITLE: PNP Card Extractor
+
+* Introduction
+
+This project extracts individual PNG files for cards within a "print and play"
+PDF file.
+
+[[https://nullsignal.games][Null Signal Games]] graciously provides "print and play" PDF files for each of
+their published card packs. These PDF files allow players, whom cannot get
+official cards, to print their own cards at home (or from a 3rd-party service).
+
+Please support *Null Signal Games* if you can. They are a non-profit group
+designing and publishing new card packs, compatible with _Android: Netrunner_,
+which was cancelled in 2018.
+
+* Features
+
+- Instead of rendering the entire PDF as an image, and cutting out the images,
+  this project uses [[https://poppler.freedesktop.org/][poppler]] to extract the embedded image data from the PDF
+  itself.
+- Uses the [[https://netrunnerdb.com/api/2.0/doc][NetrunnerDB API]] to fetch information about extracted cards:
+  - API data can be used to automatically name the exported image.
+  - API data can be stored as metadata in the PNG files.
+- API information is cached on disk, to make extraction faster and avoid
+  hammering the API.
+
+* Usage
+
+If you only care about extracting the card images, you can just pass the PDF
+filename. Images will be extracted into =Page N= subdirectories, depending on
+which page they came from.
+
+#+begin_src sh
+  pnp_card_extractor input.pdf
+  pnp_card_extractor input.pdf --directory=/export/to/dir/
+#+end_src
+
+By default, the first page is skipped, as nearly every Print and Play PDF
+includes a title page; however, you can include the first page, or specific the
+exact pages to process:
+
+#+begin_src sh
+  pnp_card_extractor input.pdf --pages=1-
+  pnp_card_extractor input.pdf --pages=1-5,8,10,20-30
+#+end_src
+
+** Metadata
+
+By default, cards are exported with sequential filenames, like =Page 1/Card
+1.png=, =Page 1/Card 2.png=, …. If you provide the "pack code" for the card pack
+in your PDF files, metadata from NetrunnerDB can be used to give the PNG files
+names based on the cards:
+
+#+begin_src  sh
+  pnp_card_extractor system-gateway.pdf --pack-code=sg
+#+end_src
+
+The pack codes come from NetrunneDB, but you can print a full list, in order of
+when they were published:
+
+#+begin_src sh
+  pnp_card_extractor --list-card-packs
+#+end_src
+
+If metadata is available, cards will be saved in a format similar to
+=CycleName/CardPackName/CardCode CardName.png=. If you prefer something else,
+you can provide a template string using whatever metadata is available from the
+API, for example:
+
+#+begin_src sh
+  pnp_card_extractor input.pdf -c sg --card-template="cards/{faction.name}/{code}.png"
+#+end_src
+
+If metadata is available, it will also be included in the exported PNG files, as
+PNG properties prefixed with =netrunner:=.
+
+*** Metadata complications
+
+When extracting cards, with metadata available, its assumed that the first card
+in the PDF file is the first card from the pack, the second card in the PDF is
+the second from the pack, and so on. Most print and play PDFs are like this, but
+a few have out-of-order cards:
+
+- When a card pack includes a flippable identity, that card will have multiple
+  images in the PDF.
+- Some PDFs have all the identities at the front, regardless of their position
+  in the card pack.
+
+In cases where the PDF file has cards in a non-sequential order, you can specify
+that ordering:
+
+#+begin_src sh
+  pnp_card_extractor input.pdf -c sg --card-order=31-40,1-10,11,11,12-30
+#+end_src
+
+* Specific examples
+
+Here are a few example using previously published print and play PDFs. They
+demonstrate how to process PDFs with unusual layouts or with extra cards.
+
+The A4-format versions of these PDFs are used in these examples, but the
+letter-format PDFs should work the same way, with the same arguments.
+
+** UprisingRemasteredEdition-English-A4\ Printable-Sheets-1x.pdf
+
+Uprising has two flippable identity cards: one Runner and one Corp.
+
+#+begin_src sh
+  pnp_card_extractor UprisingRemasteredEdition-English-A4\ Printable-Sheets-1x.pdf \
+    --pack-code=ur --card-order=66,66-120,120-
+#+end_src
+
+** ParhelionEnglish-A4-Printable-Sheets-1x-1.pdf
+
+For the Parhelion PDF, we need to specify the card order, because [[https://netrunnerdb.com/en/card/33094][Matryoshka]]
+appears 6 times in a row. Each version of this card has different flavour text.
+
+#+begin_src sh
+  pnp_card_extractor ParhelionEnglish-A4-Printable-Sheets-1x-1.pdf \
+    --pack-code=ph --card-order=-93,94,94,94,94,94,94,95-
+#+end_src
+
+** Midnight-Sun-Final-PNP-A4-English-1x.pdf
+
+The Midnight Sun PDF has no title page, and has extra cards both at the start
+and end of the PDF.
+
+#+begin_src sh
+  pnp_card_extractor Midnight-Sun-Final-PNP-A4-English-1x.pdf \
+    --pack-code=ms --pages=1- --extra-start=13 --extra-end=2
+#+end_src
+
+** Elevation-1x-A4-print-and-play-PDF.pdf
+
+The PDF for Elevation is complex for multiple reason:
+
+- It begins with 18 extra cards, describing various game rules.
+- The identities are all near the start of the file, regardless of their pack
+  position.
+- Many identities have 2 variants. A couple have 3.
+
+#+begin_src sh
+  pnp_card_extractor Elevation-1x-A4-print-and-play-PDF.pdf \
+    --pack-code=elev --extra-start=18 \
+    --card-order=-2,12-13,23,23-24,35-36,46-47,57,57-58,68-69,1-2,12-13,23-24,35-36,46-47,57-58,68-69,3-11,14-22,25-34,37-45,48-56,59-67,70-
+#+end_src
+
+* Dependencies
+
+This is a ruby application that doesn't rely on any external applications. Its
+dependencies can be installed with [[https://bundler.io/][bundler]]; however, the [[https://github.com/ruby-gnome/ruby-gnome/tree/main/poppler][poppler]] gem builds a
+native extension and you may need the poppler and GObject-Introspection
+libraries available on your machine.
+
+[[https://nixos.org/][Nix]] users can use the included [[file:flake.nix][flake.nix]] to build or run this project:
+
+#+begin_src sh
+  nix run github:sangster/pnp_card_extractor
+#+end_src
+
+* Thanks
+
+- [[https://github.com/gcoulby/NSG-netrunner-card-extractor][github:gcoulby/NSG-netrunner-card-extractor]] :: The python script that inspired
+  this project.
+- [[https://nullsignal.games][Null Signal Games]] :: Keeping Netrunner alive!
+
+* TODO
+
+- [ ] Support [[https://netrunnerdb.com/en/print/][on-the-fly print and play]] PDFs, generated by NetrunnerDB.
+  Extracting the card images should be easy, as they're individually embedded in
+  the PDF; however, I need a way to reliably detect when a PDF was generated by
+  NetrunneDB.

@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'rubygems'
+require 'bundler/setup'
+require 'debug' if ENV.key?('DEBUG')
+
+require_relative '../lib/pnp_card_extractor'
+
+begin
+  options = PnpCardExtractor::Options.call(ARGV)
+
+  case options[:run_mode]
+  when :list_card_packs
+    PnpCardExtractor::Apps::ListCardPacks.call(options)
+  else
+    PnpCardExtractor::Apps::ExtractCards.call(options)
+  end
+rescue OptionParser::MissingArgument, PnpCardExtractor::Error => e
+  abort "Error: #{e.message}"
+rescue SystemExit, Interrupt
+  options&.logger&.fatal { 'interrupted.' }
+end
