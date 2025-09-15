@@ -58,6 +58,7 @@
 
               cat > $bin <<EOF
               #!/bin/sh -e
+              export GI_TYPELIB_PATH="${passthru.search-path}";
               exec ${ruby-bundle.wrappedRuby}/bin/ruby \\
                        -I $out/share/${pname}/lib \\
                        $out/share/${pname}/bin/${pname} "\$@"
@@ -74,17 +75,12 @@
         console = {
           type = "app";
           program = let
-            search-path = pkgs.lib.makeSearchPath "lib/girepository-1.0" [
-              pkgs.glib.out
-              pkgs.poppler_gi.out
-            ];
-
-            irb = pkgs.writeShellScriptBin "irb" ''
+            console = pkgs.writeShellScriptBin "console" ''
               export GI_TYPELIB_PATH="${pkgs.${pname}.passthru.search-path}";
               export DEBUG=1
               exec ${pkgs.${pname}.passthru.ruby-bundle}/bin/rake console
             '';
-          in "${irb}/bin/irb";
+          in "${console}/bin/console";
         };
         bundler-lock = {
           type = "app";
