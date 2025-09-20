@@ -30,8 +30,12 @@ module PnpCardExtractor
           return cache.read
         end
 
-        res = source.call(route.to_sym, *args,
-                          modified_since: cache&.modified_at)
+        handle_http_response(
+          source.call(route.to_sym, *args, modified_since: cache&.modified_at)
+        )
+      end
+
+      def handle_http_response(cache, res)
         if res.is_a?(Net::HTTPNotModified)
           info { "Cache up-to-date: #{id}" }
           cache.touch

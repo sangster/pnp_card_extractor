@@ -7,22 +7,35 @@ module PnpCardExtractor
     # Prints the available card packs and their codes.
     class ListCardPacks < Base
       def call
-        cycles.each do |cycle|
-          cycle_code, cycle_name = cycle.values_at('code', 'name')
-          if cycle_packs[cycle_code].size == 1
-            pack = cycle_packs[cycle_code].first
-            code, name, date = pack.values_at('code', 'name', 'date_release')
-            printf(cycle_pattern, code, name, date)
-          else
-            cycle_packs[cycle_code].each do |pack|
-              code, name, date = pack.values_at('code', 'name', 'date_release')
-              printf(pack_pattern, code, cycle_name, name, date)
-            end
-          end
-        end
+        cycles.each { print_cycle_sets(*_1.values_at('code', 'name')) }
       end
 
       private
+
+      def cycles
+        @cycles ||= database.cycles
+      end
+
+      def print_cycle_sets(cycle_code, cycle_name)
+        if cycle_packs[cycle_code].size == 1
+          print_single_set(cycle_code)
+        else
+          print_list_of_sets(cycle_code, cycle_name)
+        end
+      end
+
+      def print_single_set(cycle_code)
+        pack = cycle_packs[cycle_code].first
+        code, name, date = pack.values_at('code', 'name', 'date_release')
+        printf(cycle_pattern, code, name, date)
+      end
+
+      def print_list_of_sets(cycle_code, cycle_name)
+        cycle_packs[cycle_code].each do |pack|
+          code, name, date = pack.values_at('code', 'name', 'date_release')
+          printf(pack_pattern, code, cycle_name, name, date)
+        end
+      end
 
       def cycle_pattern
         @cycle_pattern ||= "% #{code_len}s  %s (%s)\n"
@@ -34,10 +47,6 @@ module PnpCardExtractor
 
       def code_len
         @code_len ||= packs.map { _1.code.size }.max
-      end
-
-      def cycles
-        @cycles ||= database.cycles
       end
 
       def packs

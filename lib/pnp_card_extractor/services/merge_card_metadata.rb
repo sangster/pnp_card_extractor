@@ -54,18 +54,19 @@ module PnpCardExtractor
       def cards
         return nil unless pack_code
 
-        @cards ||= database.cards
-                           .select { _1.pack_code == pack_code }
-                           .sort_by(&:position)
+        @cards ||=
+          database.cards
+            .select { _1.pack_code == pack_code }
+            .sort_by(&:position)
       end
 
       def associated_metadata(card)
         {
           'cycle' => cycle,
-          'faction' => database.factions.find { _1.code == card.faction_code },
+          'faction' => database.faction(card.faction_code),
           'pack' => pack,
-          'side' => database.sides.find { _1.code == card.side_code },
-          'type' => database.types.find { _1.code == card.type_code },
+          'side' => database.side(card.side_code),
+          'type' => database.type(card.type_code),
         }.compact
       end
 
@@ -89,7 +90,7 @@ module PnpCardExtractor
 
         {
           'is_variant' => is_variant,
-          'variant_position' => variants[card.position]
+          'variant_position' => variants[card.position],
         }
       end
 

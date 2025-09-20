@@ -59,47 +59,44 @@ module PnpCardExtractor
       private
 
       def find_margin(w, h, data, side: :left)
+        is_opaque = make_is_opaque_predicate(side, w, data)
         min_count = (w * min_ratio).to_i
 
+        find_opaque_distance(is_opaque, min_count, iteration_params(side, w, h))
+      end
+
+      def make_is_opaque_predicate(side, w, data)
         case side
-        when :left
-          limit_i = h
-
-          start_j = 0
-          delta_j = 1
-          limit_j = w
-        when :right
-          limit_i = h
-
-          start_j = w - 1
-          delta_j = -1
-          limit_j = -1
-        when :top
-          limit_i = w
-
-          start_j = 0
-          delta_j = 1
-          limit_j = h
-        when :bottom
-          limit_i = w
-
-          start_j = h - 1
-          delta_j = -1
-          limit_j = -1
+        when :left, :right then proc { |i, j| data[w * i + j][3].zero? }
+        when :top, :bottom then proc { |i, j| data[w * j + i][3].zero? }
         end
+      end
 
-        is_opaque =
-          case side
-          when :left, :right then proc { |i, j| data[w * i + j][3].zero? }
-          when :top, :bottom then proc { |i, j| data[w * j + i][3].zero? }
-          end
+      # {#find_margin} can begin its scan at one of the 4 edges of the page, and
+      # moves in towards the center. These parameters determine the direction
+      # and limits of its iteration over the image data.
+      #
+      # @return [Array<Integer, Integer, Integer, Integer>] The limit of the
+      #   outside loop; the start of the inside loop; -1 if the inside loop is
+      #   moving up orleft or +1 if down or right; the limit of the inside loop.
+      def iteration_params(side, w, h)
+        case side
+        when :left then [h, 0, 1, w]
+        when :right then [h, w - 1, -1, -1]
+        when :top then [w, 0, 1, h]
+        when :bottom then [w, h - 1, -1, -1]
+        end
+      end
+
+      def find_opaque_distance(is_opaque, min_opaque_pixels, params)
+        limit_i, start_j, delta_j, limit_j = params
 
         (0...limit_i).each do |i|
           opaque = 0
           j = start_j
           while j != limit_j
             opaque += 1 unless is_opaque.call(i, j)
-            return i if opaque >= min_count
+            return i if opaque >= min_opaque_pixels
 
             j += delta_j
           end

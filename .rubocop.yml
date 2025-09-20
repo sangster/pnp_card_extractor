@@ -1,0 +1,28 @@
+plugins:
+  - rubocop-factory_bot
+  - rubocop-rake
+  - rubocop-rspec
+
+AllCops:
+  NewCops: enable
+
+Layout/LineLength:
+  Max: 80
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+Lint/AmbiguousOperatorPrecedence:
+  Enabled: false
+
+Naming/MethodParameterName:
+  Enabled: false
+
+Style/NumberedParametersLimit:
+  Max: 2
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: diff_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: diff_comma

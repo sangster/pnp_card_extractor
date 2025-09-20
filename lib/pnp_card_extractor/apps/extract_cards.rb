@@ -26,7 +26,7 @@ module PnpCardExtractor
 
       def sliced_cards(&blk)
         selected_pages.each do |page_number, page|
-          info { "Extracting cards from Page #{page_number} of #{num_pages}..." }
+          info { "Extracting cards from Page #{page_number}/#{num_pages}..." }
           card_number = 0
           slice_cards(page).each do |card|
             blk.call(page_number, card_number += 1, card)

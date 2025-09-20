@@ -15,6 +15,7 @@ module PnpCardExtractor
   #
   #   ./output-cards/{pack.code}/{faction_code}/{code} - {title}.png
   class FilenameTemplate
+    # An individual part of the total filename, either a dirname or basename.
     class Component
       attr_reader :template
 

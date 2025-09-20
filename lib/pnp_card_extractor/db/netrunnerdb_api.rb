@@ -24,11 +24,11 @@ module PnpCardExtractor
       end
 
       INDEX_ROUTES.each do |route|
-        define_method(route) { |**kwargs| http_get(uri(route), **kwargs) }
+        define_method(route) { get(uri(route), **_1) }
       end
 
       GET_ROUTES.each do |route|
-        define_method(route) { |id, **kwargs| http_get(uri(route, id), **kwargs) }
+        define_method(route) { get(uri(route, _1), **_2) }
       end
 
       def call(route, ...)
@@ -41,26 +41,31 @@ module PnpCardExtractor
         URI.join(host, *parts.map(&:to_s).join('/'))
       end
 
-      def http_get(uri, modified_since: nil)
-        info { "GET #{uri}#{modified_since ? " (modified_since: #{modified_since})" : ''}" }
+      def get(uri, modified_since: nil)
+        info do
+          mod = modified_since ? " (modified_since: #{modified_since})" : ''
+          "GET #{uri}#{mod}"
+        end
 
-        req = Net::HTTP::Get.new(uri)
-        req['If-Modified-Since'] = rfc2822(modified_since) if modified_since
-
-        res = start_http(uri) { _1.request(req) }
+        res = http_get(uri, modified_since:)
         debug { " -> #{res}" }
 
         case res
-        when Net::HTTPNotFound
-          raise NotFoundError, uri
-        else
-          res
+        when Net::HTTPNotFound then raise NotFoundError, uri
+        else res
         end
       end
 
-      def start_http(uri, &blk)
+      def http_get(uri, modified_since: nil)
+        req = Net::HTTP::Get.new(uri)
+        req['If-Modified-Since'] = rfc2822(modified_since) if modified_since
+
+        start_http(uri) { _1.request(req) }
+      end
+
+      def start_http(uri, &)
         use_ssl = uri.scheme == 'https'
-        Net::HTTP.start(uri.hostname, uri.port, use_ssl:, &blk)
+        Net::HTTP.start(uri.hostname, uri.port, use_ssl:, &)
       end
 
       def rfc2822(time)

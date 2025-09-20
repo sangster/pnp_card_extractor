@@ -9,6 +9,16 @@ module PnpCardExtractor
 
       attr_reader :cols, :options, :rows
 
+      Dimensions = Struct.new(:x, :y, :w, :h) do
+        def move(x, y)
+          self.class.new(x, y, w, h)
+        end
+
+        def to_s
+          "#{w}x#{h}+#{x}+#{y}"
+        end
+      end
+
       def initialize(options, rows = 3, cols = 3)
         @options = options
         @rows = rows
@@ -25,29 +35,31 @@ module PnpCardExtractor
       private
 
       def subdivide(img, margins)
-        w = (img.width - margins[:left] - margins[:right]) / cols
-        h = (img.height - margins[:top] - margins[:bottom]) / rows
+        rect = make_rect(img, margins)
 
         (0...rows).flat_map do |j|
           (0...cols).filter_map do |i|
-            x = margins[:left] + i * w
-            y = margins[:top] + j * h
-            subdivide_xy(img, i, j, x, y, w, h)
+            subdivide_xy(img, i, j, rect.move(margins[:left] + i * w,
+                                              margins[:top] + j * h))
           end
         end
       end
 
-      def subdivide_xy(img, i, j, x, y, w, h)
-        card = img.create_view(x, y, w, h)
+      def make_rect(img, margins)
+        w = (img.width - margins[:left] - margins[:right]) / cols
+        h = (img.height - margins[:top] - margins[:bottom]) / rows
+        Dimensions.new(0, 0, w, h)
+      end
+
+      def subdivide_xy(img, i, j, dim)
+        card = img.create_view(dim.x, dim.y, dim.w, dim.h)
         if card.blank?
-          warn { "Card at #{j+1}x#{i+1} is blank" }
+          warn { "Card at #{j + 1}x#{i + 1} is blank" }
           nil
         else
           card
         end.tap do
-          debug do
-            "Image dimensions of card at #{j+1}x#{i+1}: #{w}x#{h}+#{x}+#{y}"
-          end
+          debug { "Image dimensions of card at #{j + 1}x#{i + 1}: #{dim}" }
         end
       end
 

@@ -68,7 +68,7 @@ module PnpCardExtractor
           if !pack || pack.position == 1
             1
           else
-            earlier_packs.inject(0) { _1 + _2.size } + 1
+            earlier_packs.inject(0) { |acc, pack| acc + pack.size } + 1
           end
       end
 

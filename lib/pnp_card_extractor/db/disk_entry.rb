@@ -53,7 +53,11 @@ module PnpCardExtractor
         @modified_at = last_modified(res)
         touch
 
-        info { "Stored #{@read.size} bytes into #{path} (last-modified: #{@modified_at})" }
+        info do
+          "Stored #{@read.size} bytes into #{path} " \
+            "(last-modified: #{@modified_at})"
+        end
+
         read
       end
 

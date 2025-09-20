@@ -100,6 +100,7 @@
               ghostscript
               poppler
               ruby-bundle.wrappedRuby
+              ruby-bundle
             ];
             env = {
               GI_TYPELIB_PATH = search-path;

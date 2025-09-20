@@ -22,18 +22,14 @@ module PnpCardExtractor
       end
     end
 
-    def initialize(surface, width, height, offset_x: 0, offset_y: 0,
-                   pixel_data: nil, pixel_data_width: nil, pixel_data_height: nil,
-                   format_code: nil)
+    def initialize(surface, width, height, offset_x: 0, offset_y: 0)
       @surface = surface
       @width = width
       @height = height
       @offset_x = offset_x
       @offset_y = offset_y
-      @pixel_data = pixel_data
-      @pixel_data_width = pixel_data_width || surface.width
-      @pixel_data_height = pixel_data_height || surface.height
-      @format_code = format_code
+      @pixel_data_width = surface.width
+      @pixel_data_height = surface.height
     end
 
     def pixel_data
@@ -45,26 +41,25 @@ module PnpCardExtractor
     end
 
     def pixel_width
-      if format_code == Cairo::FORMAT_ARGB32
-        4
-      else
-        raise Error, "Unexpected format: #{format_code}"
-      end
+      return 4 if format_code == Cairo::FORMAT_ARGB32
+
+      raise Error, "Unexpected format: #{format_code}"
     end
 
     # Create another {Image} using the same {#pixel_data} as this one.
     def create_view(x, y, w, h)
-      self.class.new(
-        surface.sub_rectangle_surface(x, y, w, h),
-        w,
-        h,
-        offset_x: x,
-        offset_y: y,
-        pixel_data:,
-        pixel_data_width:,
-        pixel_data_height:,
-        format_code:,
-      )
+      self.class.new(surface.sub_rectangle_surface(x, y, w, h),
+                     w, h, offset_x: x, offset_y: y).tap do |view|
+        view.copy_pixels(pixel_data, pixel_data_width, pixel_data_height,
+                         format_code)
+      end
+    end
+
+    def copy_pixels(data, width, height, code)
+      @pixel_data = data
+      @pixel_data_width = width
+      @pixel_data_height = height
+      @format_code = code
     end
 
     # The last page may not have the full number of cards. Those missing cards

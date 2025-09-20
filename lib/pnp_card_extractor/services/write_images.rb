@@ -36,14 +36,7 @@ module PnpCardExtractor
       def call(card, page_number, card_number)
         meta = card_metadata(page_number, card_number)
         path = card_filename(meta)
-        if path.exist?
-          if options[:force]
-            warn { "Will replace existing file: #{path}" }
-          else
-            warn { "Skipping existing file: #{path}" }
-            return
-          end
-        end
+        return unless filename_free?(path)
 
         info { "Writing page #{page_number} card #{card_number} to #{path}" }
         path.dirname.mkpath
@@ -60,6 +53,18 @@ module PnpCardExtractor
       def card_filename(meta)
         template = meta['is_extra'] ? extra_template : filename_template
         (Pathname(options[:directory]) / template.call(meta))
+      end
+
+      def filename_free?(path)
+        return true unless path.exist?
+
+        if options[:force]
+          warn { "Will replace existing file: #{path}" }
+          true
+        else
+          warn { "Skipping existing file: #{path}" }
+          false
+        end
       end
 
       def metadata

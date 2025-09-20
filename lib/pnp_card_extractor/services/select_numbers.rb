@@ -36,6 +36,7 @@ module PnpCardExtractor
         @unique = unique
 
         ranges.each { push(_1) }
+        @entries.freeze
       end
 
       def [](idx)
@@ -54,30 +55,26 @@ module PnpCardExtractor
         @entries.each(...)
       end
 
+      private
+
       def push(range)
         @to_a = nil
 
         case range
         when String
           parse_string(range).each { push(_1) } if validate_string!(range)
-        when Integer
-          @entries << range if validate_single!(range)
-        when Range
-          range.each { @entries << _1 } if validate_range!(range)
+        when Integer then @entries << range if validate_single!(range)
+        when Range then range.each { @entries << _1 } if validate_range!(range)
         else
           raise Error, "Unexpected range (#{range.class}): #{range}"
         end
       end
 
-      alias << push
-
-      private
-
       def parse_string(str)
         split_string(str).map do |range_str|
           if (m = STRING_RANGE.match(range_str))
-            min_val = !m[1].empty? ? m[1].to_i : min
-            max_val = !m[2].empty? ? m[2].to_i : max
+            min_val = m[1].empty? ? min : m[1].to_i
+            max_val = m[2].empty? ? max : m[2].to_i
             (min_val..max_val)
           else
             range_str.to_i

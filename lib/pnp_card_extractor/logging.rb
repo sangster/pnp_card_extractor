@@ -13,7 +13,8 @@ module PnpCardExtractor
         .to_h { [_1, Logger::Severity.const_get(_1.to_s.upcase.to_sym)] }
         .freeze
 
-    class FakeLogger
+    # A silent logger that ignores all messages.
+    class NilLogger
       LEVELS.each_key do |name|
         define_method(name) { |*_| nil }
       end
@@ -21,11 +22,11 @@ module PnpCardExtractor
 
     class << self
       def wrap_logger(logger)
-        logger || fake_logger
+        logger || nil_logger
       end
 
-      def fake_logger
-        @fake_logger ||= FakeLogger.new
+      def nil_logger
+        @nil_logger ||= NilLogger.new
       end
     end
 
